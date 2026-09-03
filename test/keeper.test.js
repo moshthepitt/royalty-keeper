@@ -53,6 +53,19 @@ test("transaction construction exactly matches the Keeper sweep ABI", async () =
   assert.equal(transaction.recentBlockhash, blockhash);
 });
 
+test("all frozen source addresses are the recorded origin program's NFTSale PDA", async () => {
+  const web3 = await loadVendoredWeb3();
+  const seed = new TextEncoder().encode("NFTSale");
+  for (const route of ROUTES) {
+    const derived = web3.PublicKey.createProgramAddressSync(
+      [seed, Uint8Array.of(route.bump)],
+      new web3.PublicKey(route.originProgramAddress),
+    );
+    assert.equal(derived.toString(), route.sourceAddress, route.name);
+    route.recipients.forEach(({ address }) => assert.doesNotThrow(() => new web3.PublicKey(address)));
+  }
+});
+
 test("an exact wallet signature is accepted and any message change is rejected", async () => {
   const web3 = await loadVendoredWeb3();
   const payer = web3.Keypair.fromSeed(new Uint8Array(32).fill(7));

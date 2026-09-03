@@ -101,7 +101,8 @@ export function validateRoutes(routes) {
   if (!Array.isArray(routes) || routes.length !== 33) throw new Error("Expected 33 frozen routes.");
   const sources = new Set();
   routes.forEach((route, index) => {
-    if (route.id !== index || !route.name || !route.sourceAddress) {
+    if (route.id !== index || !route.name || !route.sourceAddress || !route.originProgramAddress ||
+        !Number.isInteger(route.bump) || route.bump < 0 || route.bump > 255) {
       throw new Error(`Route ${index} is malformed.`);
     }
     if (sources.has(route.sourceAddress)) throw new Error(`Route ${index} repeats a source PDA.`);
@@ -111,6 +112,10 @@ export function validateRoutes(routes) {
     }
     if (new Set(route.recipients.map(({ address }) => address)).size !== route.recipients.length) {
       throw new Error(`Route ${index} repeats a recipient.`);
+    }
+    if (route.recipients.some(({ address, basisPoints }) =>
+      !address || !Number.isInteger(basisPoints) || basisPoints <= 0 || basisPoints > 10_000 || basisPoints % 50 !== 0)) {
+      throw new Error(`Route ${index} has an invalid recipient.`);
     }
     if (route.recipients.reduce((sum, { basisPoints }) => sum + basisPoints, 0) !== 10_000) {
       throw new Error(`Route ${index} has an invalid royalty split.`);
