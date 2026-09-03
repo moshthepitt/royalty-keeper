@@ -9,7 +9,7 @@ import {
   buildSweepTransaction,
   transactionSignature,
   unsignedTransactionBytes,
-  verifyWalletTransaction,
+  serializeSignedTransaction,
 } from "../keeper.js";
 import { base58Encode } from "../core.js";
 import { KEEPER_PROGRAM_ADDRESS, ROUTES } from "../routes.js";
@@ -67,23 +67,25 @@ test("all frozen source addresses are the recorded origin program's NFTSale PDA"
   }
 });
 
-test("an exact wallet signature is accepted and any message change is rejected", async () => {
+test("a valid wallet-signed transaction is accepted after wallet edits", async () => {
   const web3 = await loadVendoredWeb3();
   const payer = web3.Keypair.fromSeed(new Uint8Array(32).fill(7));
   const blockhash = web3.Keypair.fromSeed(new Uint8Array(32).fill(8)).publicKey.toString();
   const unsigned = unsignedTransactionBytes(buildSweepTransaction(web3, ROUTES[0], payer.publicKey, blockhash));
-  const reviewed = web3.Transaction.from(unsigned);
   const signed = web3.Transaction.from(unsigned);
   signed.partialSign(payer);
 
-  const wire = verifyWalletTransaction(reviewed, signed, payer.publicKey);
+  const wire = serializeSignedTransaction(signed, payer.publicKey);
   assert.ok(wire.length > unsigned.length - 1);
   assert.equal(transactionSignature(signed), base58Encode(signed.signature));
 
   const changed = web3.Transaction.from(unsigned);
   changed.recentBlockhash = web3.Keypair.fromSeed(new Uint8Array(32).fill(9)).publicKey.toString();
   changed.partialSign(payer);
-  assert.throws(() => verifyWalletTransaction(reviewed, changed, payer.publicKey), /Wallet changed/u);
+  assert.doesNotThrow(() => serializeSignedTransaction(changed, payer.publicKey));
+
+  const unsignedAgain = web3.Transaction.from(unsigned);
+  assert.throws(() => serializeSignedTransaction(unsignedAgain, payer.publicKey), /valid fee-payer signature/u);
 });
 
 test("broadcast reconciliation accepts only finalized success and surfaces onchain failure", async () => {
@@ -111,4 +113,26 @@ test("broadcast reconciliation accepts only finalized success and surfaces oncha
     broadcastAndFinalize(failedRpc, bytes, signature, context),
     /Transaction failed.*InvalidArgument/u,
   );
+
+  const changedBlockhashRpc = {
+    async sendTransaction() { return signature; },
+    async getSignatureStatus() {
+      return { value: [{ err: null, confirmationStatus: "finalized" }] };
+    },
+  };
+  assert.equal(await broadcastAndFinalize(changedBlockhashRpc, bytes, signature, null), signature);
+
+  let statusChecks = 0;
+  let expiredSends = 0;
+  const delayedHistoryRpc = {
+    async sendTransaction() { expiredSends += 1; return signature; },
+    async getSignatureStatus() {
+      statusChecks += 1;
+      return { value: [statusChecks < 2 ? null : { err: null, confirmationStatus: "finalized" }] };
+    },
+    async getBlockHeight() { return context.lastValidBlockHeight + 1; },
+  };
+  assert.equal(await broadcastAndFinalize(delayedHistoryRpc, bytes, signature, context), signature);
+  assert.equal(expiredSends, 1, "an expired transaction must not be rebroadcast");
+  assert.equal(statusChecks, 2, "history must be polled after blockhash expiry");
 });

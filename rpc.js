@@ -48,7 +48,7 @@ export class RpcClient {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
       try {
-        const response = await this.fetcher(this.endpoint, {
+        const response = await this.fetcher.call(globalThis, this.endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ jsonrpc: "2.0", id: this.nextId++, method, params }),
@@ -87,6 +87,26 @@ export class RpcClient {
     const options = { commitment, encoding: "base64" };
     if (minContextSlot !== undefined) options.minContextSlot = minContextSlot;
     return this.request("getMultipleAccounts", [addresses, options]);
+  }
+
+  async getMultipleAccountsBatched(addresses, { batchSize = 10, commitment = "confirmed" } = {}) {
+    if (!Number.isSafeInteger(batchSize) || batchSize < 1) {
+      throw new TypeError("RPC account batch size must be a positive integer.");
+    }
+
+    const value = [];
+    let oldestSlot = null;
+    for (let offset = 0; offset < addresses.length; offset += batchSize) {
+      const result = await this.getMultipleAccounts(addresses.slice(offset, offset + batchSize), { commitment });
+      const accounts = result?.value;
+      const slot = result?.context?.slot;
+      if (!Array.isArray(accounts) || !Number.isSafeInteger(slot)) {
+        throw new RpcError("RPC returned an invalid account batch.");
+      }
+      value.push(...accounts);
+      oldestSlot = oldestSlot === null ? slot : Math.min(oldestSlot, slot);
+    }
+    return { context: { slot: oldestSlot }, value };
   }
 
   getMinimumBalanceForRentExemption(size = 0) {

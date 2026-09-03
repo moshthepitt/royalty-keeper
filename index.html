@@ -6,45 +6,23 @@
   <meta name="color-scheme" content="dark">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src https: http://localhost:* http://127.0.0.1:*; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
-  <title>Royalty Keeper</title>
+  <title>NFT royalty withdrawals</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <header>
-    <div class="brand"><span aria-hidden="true"></span>Royalty Keeper</div>
-    <div class="network">SOLANA · MAINNET</div>
-  </header>
-
-  <main>
-    <section class="intro" aria-labelledby="title">
-      <div>
-        <p class="eyebrow">PERMISSIONLESS NATIVE-SOL ROYALTIES</p>
-        <h1 id="title">Withdraw royalties.</h1>
-        <p>Choose a collection and approve one transaction. Recipient addresses and splits are fixed by the reviewed Keeper release, not entered here.</p>
-      </div>
-      <div class="keeper-note">
-        <span>KEEPER</span>
-        <code>KeEPA4…MAMRvS</code>
-        <small>Exact program code checked before every withdrawal</small>
-      </div>
-    </section>
-
-    <section class="controls" aria-label="Connection settings">
-      <div class="wallet-control">
-        <div class="control-heading">
-          <span>WALLET</span>
-          <p id="wallet-status">Connect a wallet to pay the network fee. No recipient signature is required.</p>
-        </div>
-        <div class="buttons">
-          <button id="phantom" type="button">Phantom</button>
-          <button id="backpack" type="button">Backpack</button>
-          <button id="disconnect" class="quiet" type="button" hidden>Disconnect</button>
-        </div>
+  <header class="site-header">
+    <div class="brand"><span aria-hidden="true"></span><strong>NFT royalties</strong><small>Mainnet</small></div>
+    <div class="header-controls" aria-label="Wallet and RPC">
+      <span id="wallet-status" class="wallet-status">Wallet not connected</span>
+      <div class="wallet-buttons">
+        <button id="phantom" type="button">Phantom</button>
+        <button id="backpack" type="button">Backpack</button>
+        <button id="disconnect" class="quiet" type="button" hidden>Disconnect</button>
       </div>
 
       <details class="rpc-control">
-        <summary><span>RPC</span><strong id="rpc-label">api.mainnet-beta.solana.com</strong><small id="rpc-status">Public mainnet RPC</small></summary>
+        <summary><span>RPC</span><strong id="rpc-label">api.mainnet.solana.com</strong></summary>
         <form id="rpc-form">
           <label for="rpc-url">Mainnet RPC URL</label>
           <div class="rpc-input">
@@ -53,20 +31,20 @@
           </div>
           <div class="buttons">
             <button type="submit">Use endpoint</button>
-            <button id="rpc-reset" class="quiet" type="button">Reset default</button>
+            <button id="rpc-reset" class="quiet" type="button">Use default</button>
           </div>
-          <p>Your URL stays in this tab and is sent only to that RPC endpoint.</p>
+          <p id="rpc-status">Default public RPC. Custom URLs stay in this tab.</p>
         </form>
       </details>
-    </section>
+    </div>
+  </header>
 
-    <p id="page-status" class="page-status" role="status" aria-live="polite">Collections are ready. Balances are loading independently.</p>
-
+  <main>
     <section class="collections" aria-labelledby="collections-title">
       <div class="table-heading">
         <div>
-          <p class="eyebrow">33 FROZEN ROUTES</p>
-          <h2 id="collections-title">Collections</h2>
+          <h1 id="collections-title">Collections</h1>
+          <p id="page-status" class="page-status" role="status" aria-live="polite">Loading balances…</p>
         </div>
         <div class="table-tools">
           <label><span class="sr-only">Search collections</span><input id="search" type="search" placeholder="Search collection…"></label>
@@ -83,7 +61,7 @@
     </section>
   </main>
 
-  <footer>Static files · No analytics · No backend · No secret-key access</footer>
+  <footer>Static site. No analytics or backend.</footer>
   <script src="./vendor/solana-web3-1.98.4.min.js"></script>
   <script type="module" src="./app.js"></script>
 </body>

@@ -1,6 +1,6 @@
-# Royalty Keeper withdrawals
+# NFT royalty withdrawals
 
-A deliberately boring, static interface for withdrawing native-SOL royalties from 33 frozen Royalty Keeper routes.
+A static interface for withdrawing native-SOL royalties from 33 configured NFT collections.
 
 There is no build step, application server, database, analytics, or secret-key input. GitHub Pages can serve the repository root as-is. The browser connects directly to a Solana mainnet RPC and to Phantom or Backpack.
 
@@ -20,37 +20,39 @@ In the repository settings, choose **Pages → Deploy from a branch → `main` /
 
 ## What a withdrawal does
 
-The connected wallet is only the fee payer. It does not select or authenticate royalty recipients.
+The connected wallet pays the network fee and approves the transaction.
 
-For the chosen route, the page:
+For the chosen collection, the page:
 
-1. downloads the Keeper Program, ProgramData, and royalty PDA in one RPC snapshot;
-2. checks the ProgramData link, exact 22,608-byte ELF SHA-256, PDA owner, zero data length, and rent reserve;
-3. constructs one Keeper `SWEEP` instruction containing the frozen PDA and frozen ordered recipients;
+1. downloads the withdrawal program, its ProgramData, and the royalty account in one RPC snapshot;
+2. checks the ProgramData link, exact 22,608-byte ELF SHA-256, account owner, zero data length, and rent reserve;
+3. constructs one withdrawal instruction containing the configured royalty account and recipients;
 4. simulates the exact unsigned transaction;
-5. asks the wallet to sign and rejects any changed message;
+5. asks the wallet to review and sign the transaction;
 6. simulates the signed transaction, rechecks unchanged onchain inputs, broadcasts the same bytes, and waits for finalization.
 
-Every successful withdrawal leaves the current zero-data rent reserve in the PDA. Routes with historical floor-rounding behavior may also retain a few lamports of rounding dust.
+The wallet may add compute-budget settings. The site accepts those edits and simulates the returned signed transaction.
 
-The Keeper currently retains an upgrade authority. This release therefore pins its exact reviewed ELF and refuses to withdraw if the onchain code changes. A deliberate reviewed website release is required after any Keeper upgrade.
+Every successful withdrawal leaves the current zero-data rent reserve in the royalty account. Collections with historical floor rounding may also retain a few lamports.
+
+The onchain program currently retains an upgrade authority. This site pins the reviewed ELF and refuses to withdraw if that code changes. Updating the program requires a reviewed site release.
 
 ## Balances and RPC endpoints
 
 The table renders immediately in ordinary English alphabetical order. Balance loading is asynchronous and optional: an unavailable or rate-limited RPC does not remove the routes or wallet controls. A withdrawal always performs its own fresh safety proof and simulation.
 
-The default endpoint is Solana's public mainnet RPC. A user may enter a custom HTTPS endpoint; it is kept only in the current tab and is never written to storage. The endpoint must permit browser CORS requests. Treat URLs containing API keys as secrets even though the field is masked and this page sends no referrer.
+The page tries [Solana's public mainnet RPC](https://solana.com/docs/references/clusters) first. If that endpoint rejects the browser request, the page visibly switches to [PublicNode's public Solana RPC](https://publicnode.com/). A custom HTTPS endpoint is kept only in the current tab and is never replaced automatically. The endpoint must permit browser CORS requests. Treat URLs containing API keys as secrets even though the field is masked and this page sends no referrer.
 
 ## Frozen inputs
 
-- Keeper program: `KeEPA4MrRF45wBAwsJRGHwumd3LiRubpcvyZjMAMRvS`
-- Keeper ProgramData: `BH7uPpKQBLArB59EJ9tZC8bm6sWzNXVroCz2XmRDwnnA`
-- Keeper ELF SHA-256: `9cf01c79d55d031db9449155ed67e4ce30089c474226c8423fb8fc38871876c1`
+- Withdrawal program: `KeEPA4MrRF45wBAwsJRGHwumd3LiRubpcvyZjMAMRvS`
+- ProgramData: `BH7uPpKQBLArB59EJ9tZC8bm6sWzNXVroCz2XmRDwnnA`
+- ELF SHA-256: `9cf01c79d55d031db9449155ed67e4ce30089c474226c8423fb8fc38871876c1`
 - Vendored Solana Web3.js: `1.98.4`
 - Vendored minified file SHA-256: `09cdbea951b2ed0e11bcbe3aeb1ee9f035f9fb51ed212aca645475ae82688cc3`
 
-The route PDA, recipient order, basis points, and legacy remainder behavior live in `routes.js`. They must be changed only from an audited Keeper manifest. The vendored library license is in `vendor/solana-web3-LICENSE`.
+The royalty account, recipient order, basis points, and legacy remainder behavior live in `routes.js`. Change them only from the audited manifest. The vendored library license is in `vendor/solana-web3-LICENSE`.
 
 ## Maintenance rule
 
-Keep this repository static and dependency-free at runtime. Do not replace the vendored browser library with a CDN URL. Review and test any change to routes, transaction construction, Keeper identity, or code hash before publishing it.
+Keep this repository static and dependency-free at runtime. Do not replace the vendored browser library with a CDN URL. Review and test any change to the manifest, transaction construction, program identity, or code hash before publishing it.

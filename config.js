@@ -1,4 +1,6 @@
-export const DEFAULT_RPC_URL = "https://api.mainnet-beta.solana.com/";
+export const DEFAULT_RPC_URL = "https://api.mainnet.solana.com/";
+export const FALLBACK_RPC_URL = "https://solana-rpc.publicnode.com/";
+export const BALANCE_BATCH_SIZE = 10;
 export const CHAIN = "solana:mainnet";
 export const KEEPER_PROGRAM_DATA_ADDRESS = "BH7uPpKQBLArB59EJ9tZC8bm6sWzNXVroCz2XmRDwnnA";
 export const KEEPER_ELF_BYTES = 22_608;

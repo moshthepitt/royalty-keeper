@@ -1,4 +1,4 @@
-import { DEFAULT_RPC_URL } from "./config.js";
+import { BALANCE_BATCH_SIZE, DEFAULT_RPC_URL, FALLBACK_RPC_URL } from "./config.js";
 import {
   alphabeticalRoutes,
   checkedLamports,
@@ -16,7 +16,7 @@ import {
   requireSuccessfulSimulation,
   transactionSignature,
   unsignedTransactionBytes,
-  verifyWalletTransaction,
+  serializeSignedTransaction,
 } from "./keeper.js";
 import { decodeAccount, RpcClient } from "./rpc.js";
 import { KEEPER_PROGRAM_ADDRESS, ROUTES } from "./routes.js";
@@ -26,7 +26,7 @@ import { findWallet, onWalletRegistration } from "./wallets.js";
 if (window.top !== window.self) {
   const warning = document.createElement("main");
   warning.className = "frame-warning";
-  warning.textContent = "Royalty Keeper withdrawals cannot run inside another page. Open this site directly.";
+  warning.textContent = "NFT royalty withdrawals cannot run inside another page. Open this site directly.";
   document.body.replaceChildren(warning);
   throw new Error("Refusing to run inside a frame.");
 }
@@ -46,6 +46,7 @@ const state = {
   balanceGeneration: 0,
   balances: new Map(),
   balanceLoading: false,
+  rentByEndpoint: new Map(),
   rows: new Map(),
   wallet: null,
   payer: null,
@@ -88,10 +89,7 @@ function makeRow(route) {
   const collection = document.createElement("td");
   const name = document.createElement("strong");
   name.textContent = route.name;
-  const metadata = document.createElement("span");
-  metadata.className = "metadata";
-  metadata.textContent = `Route ${route.id} · ${shortAddress(route.sourceAddress)} · ${route.recipients.length} fixed recipient${route.recipients.length === 1 ? "" : "s"}`;
-  collection.append(name, metadata);
+  collection.append(name);
 
   const balance = document.createElement("td");
   balance.dataset.label = "Royalty balance";
@@ -129,7 +127,7 @@ function updateBalance(route) {
   if (balance.status === "ready") {
     row.amount.textContent = `${formatSol(balance.distributed)} SOL`;
     row.amount.title = balance.retained > 0n
-      ? `${balance.retained} lamports of legacy rounding dust remain in the PDA.`
+      ? `${balance.retained} lamports remain in the royalty account after rounding.`
       : "Withdrawable after retaining the current zero-data rent reserve.";
   } else if (balance.status === "invalid") {
     row.amount.textContent = "Invalid account";
@@ -163,8 +161,34 @@ function updateControls() {
   if (state.wallet) {
     elements.walletStatus.textContent = `${state.wallet.name} · ${shortAddress(state.payer.toString())}`;
   } else {
-    elements.walletStatus.textContent = "Connect a wallet to pay the network fee. No recipient signature is required.";
+    elements.walletStatus.textContent = "Wallet not connected";
   }
+}
+
+async function balanceRent(rpc) {
+  const cached = state.rentByEndpoint.get(rpc.endpoint);
+  if (cached !== undefined) return cached;
+  const pending = rpc.getMinimumBalanceForRentExemption(0).then(checkedLamports);
+  state.rentByEndpoint.set(rpc.endpoint, pending);
+  try {
+    const rent = await pending;
+    state.rentByEndpoint.set(rpc.endpoint, rent);
+    return rent;
+  } catch (error) {
+    if (state.rentByEndpoint.get(rpc.endpoint) === pending) state.rentByEndpoint.delete(rpc.endpoint);
+    throw error;
+  }
+}
+
+async function fetchBalances(rpc) {
+  const [accounts, rent] = await Promise.all([
+    rpc.getMultipleAccountsBatched(
+      ROUTES.map(({ sourceAddress }) => sourceAddress),
+      { batchSize: BALANCE_BATCH_SIZE },
+    ),
+    balanceRent(rpc),
+  ]);
+  return { accounts, rent };
 }
 
 async function refreshBalances({ showLoading = true } = {}) {
@@ -179,16 +203,28 @@ async function refreshBalances({ showLoading = true } = {}) {
     });
   }
   elements.refresh.classList.add("spinning");
+  let balanceRpc = rpc;
   try {
-    const [accounts, rentValue] = await Promise.all([
-      rpc.getMultipleAccounts(ROUTES.map(({ sourceAddress }) => sourceAddress)),
-      rpc.getMinimumBalanceForRentExemption(0),
-    ]);
+    let snapshot;
+    try {
+      snapshot = await fetchBalances(rpc);
+    } catch (error) {
+      if (rpc.endpoint !== DEFAULT_RPC_URL || state.rpc !== rpc) throw error;
+      balanceRpc = new RpcClient(FALLBACK_RPC_URL);
+      setPageStatus("The official RPC rejected this browser. Trying the fallback…", "warn");
+      snapshot = await fetchBalances(balanceRpc);
+      if (generation !== state.balanceGeneration) return;
+      state.rpc = balanceRpc;
+      elements.rpcUrl.value = FALLBACK_RPC_URL;
+      elements.rpcLabel.textContent = publicRpcLabel(FALLBACK_RPC_URL);
+      elements.rpcStatus.textContent = "Automatic fallback. Use default to try the official RPC again.";
+    }
     if (generation !== state.balanceGeneration) return;
+    const { accounts, rent: rentValue } = snapshot;
     if (!Array.isArray(accounts?.value) || accounts.value.length !== ROUTES.length) {
       throw new Error("RPC returned the wrong number of royalty accounts.");
     }
-    const rent = checkedLamports(rentValue);
+    const rent = rentValue;
     ROUTES.forEach((route, index) => {
       try {
         const account = decodeAccount(accounts.value[index]);
@@ -203,14 +239,14 @@ async function refreshBalances({ showLoading = true } = {}) {
       }
       updateBalance(route);
     });
-    setPageStatus("Balances updated. Anyone may trigger a withdrawal; the Keeper fixes every recipient.", "good");
-  } catch {
+    setPageStatus(balanceRpc.endpoint === FALLBACK_RPC_URL ? "Balances updated using the fallback RPC." : "Balances updated.", "good");
+  } catch (error) {
     if (generation !== state.balanceGeneration) return;
     ROUTES.forEach((route) => {
       state.balances.set(route.id, { status: "unavailable" });
       updateBalance(route);
     });
-    setPageStatus("Balance lookup failed. The table and wallet remain usable; retry or choose another RPC.", "warn");
+    setPageStatus(`Balances unavailable from ${publicRpcLabel(balanceRpc.endpoint)}: ${errorMessage(error)} Try again or choose another RPC.`, "warn");
   } finally {
     if (generation === state.balanceGeneration) {
       state.balanceLoading = false;
@@ -227,7 +263,7 @@ async function connect(name) {
     const payer = await wallet.connect();
     state.wallet = wallet;
     state.payer = payer;
-    setPageStatus(`${name} connected. The wallet only pays transaction fees; payouts remain hard-coded.`, "good");
+    setPageStatus(`${name} connected.`, "good");
   } catch (error) {
     setPageStatus(errorMessage(error), "bad");
   }
@@ -254,7 +290,7 @@ async function withdraw(route) {
   let broadcastAttempted = false;
   state.busyRoute = route.id;
   updateControls();
-  setOperation(row, "Verifying Keeper code and this royalty PDA…");
+  setOperation(row, "Checking the collection and current balance…");
   try {
     const before = await fetchRouteProof(rpc, web3, route);
     if (before.distributed === 0n) {
@@ -272,11 +308,10 @@ async function withdraw(route) {
     setOperation(row, "Simulating the exact withdrawal…");
     await requireSuccessfulSimulation(rpc, unsigned, false, before.slot);
 
-    const reviewed = web3.Transaction.from(unsigned);
     const toSign = web3.Transaction.from(unsigned);
     setOperation(row, `Approve in ${wallet.name}. Current distributable balance: ${formatSol(before.distributed)} SOL.`);
     const signed = await wallet.sign(toSign);
-    const wire = verifyWalletTransaction(reviewed, signed, payer);
+    const wire = serializeSignedTransaction(signed, payer);
     attemptedSignature = transactionSignature(signed);
     await requireSuccessfulSimulation(rpc, wire, true, before.slot);
 
@@ -288,8 +323,9 @@ async function withdraw(route) {
 
     setOperation(row, "Broadcasting and waiting for finalization…");
     broadcastAttempted = true;
-    await broadcastAndFinalize(rpc, wire, attemptedSignature, blockhashContext, (message) => setOperation(row, message));
-    setOperation(row, "Keeper sweep finalized. Refreshing this route's balance…", "good", attemptedSignature);
+    const confirmationContext = signed.recentBlockhash === blockhashContext.blockhash ? blockhashContext : null;
+    await broadcastAndFinalize(rpc, wire, attemptedSignature, confirmationContext, (message) => setOperation(row, message));
+    setOperation(row, "Withdrawal finalized. Refreshing the balance…", "good", attemptedSignature);
     void refreshBalances({ showLoading: false });
   } catch (error) {
     setOperation(row, errorMessage(error), "bad", broadcastAttempted ? attemptedSignature : null);
@@ -305,7 +341,7 @@ function applyRpc(event) {
     const url = validateRpcUrl(elements.rpcUrl.value, location.protocol);
     state.rpc = new RpcClient(url);
     elements.rpcLabel.textContent = publicRpcLabel(url);
-    elements.rpcStatus.textContent = url === DEFAULT_RPC_URL ? "Public mainnet RPC" : "Custom mainnet RPC · kept in this tab only";
+    elements.rpcStatus.textContent = url === DEFAULT_RPC_URL ? "Default public RPC. Custom URLs stay in this tab." : "Custom RPC. This URL stays in this tab.";
     void refreshBalances();
   } catch (error) {
     setPageStatus(errorMessage(error), "bad");
@@ -316,7 +352,7 @@ function resetRpc() {
   elements.rpcUrl.value = DEFAULT_RPC_URL;
   state.rpc = new RpcClient(DEFAULT_RPC_URL);
   elements.rpcLabel.textContent = publicRpcLabel(DEFAULT_RPC_URL);
-  elements.rpcStatus.textContent = "Public mainnet RPC";
+  elements.rpcStatus.textContent = "Default public RPC. Custom URLs stay in this tab.";
   void refreshBalances();
 }
 

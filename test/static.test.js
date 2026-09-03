@@ -10,9 +10,17 @@ test("page uses only repository-local scripts and styles", async () => {
   assert.ok(urls.length >= 3);
   assert.ok(urls.every((url) => url.startsWith("./")), urls.join(", "));
   assert.match(html, /Content-Security-Policy/iu);
-  assert.match(html, /No analytics · No backend · No secret-key access/u);
+  assert.match(html, /No analytics or backend/u);
   assert.doesNotMatch(html, /<script(?![^>]*src=)[^>]*>/iu);
   assert.doesNotMatch(html, /<style/iu);
+});
+
+test("visible page is a compact collection withdrawal utility", async () => {
+  const html = await readFile(new URL("index.html", root), "utf8");
+  assert.match(html, /<header class="site-header">/u);
+  assert.match(html, /<h1 id="collections-title">Collections<\/h1>/u);
+  assert.doesNotMatch(html, /Keeper|ProgramData|route|recipient/iu);
+  assert.ok(html.indexOf("wallet-status") < html.indexOf("collections-title"));
 });
 
 test("withdrawal UI has no migration, loader, authority-key, or storage machinery", async () => {

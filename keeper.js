@@ -7,7 +7,7 @@ import {
   REBROADCAST_INTERVAL_MS,
   UPGRADEABLE_LOADER_ADDRESS,
 } from "./config.js";
-import { base58Encode, checkedLamports, equalBytes, expectedPayouts, sweepDescriptor } from "./core.js";
+import { base58Encode, checkedLamports, expectedPayouts, sweepDescriptor } from "./core.js";
 import { decodeAccount } from "./rpc.js";
 import { KEEPER_PROGRAM_ADDRESS } from "./routes.js";
 
@@ -26,7 +26,7 @@ async function sha256(bytes) {
 
 function assertCanonicalAccount(account, owner, executable) {
   if (account.owner !== owner || account.executable !== executable) {
-    throw new Error("Mainnet account ownership does not match the frozen Keeper release.");
+    throw new Error("The onchain withdrawal setup has changed.");
   }
 }
 
@@ -40,7 +40,7 @@ export async function fetchRouteProof(rpc, web3, route, minContextSlot) {
     throw new Error("RPC returned no proof slot.");
   }
   const [programRaw, programDataRaw, sourceRaw] = accountsResult.value ?? [];
-  if (!programRaw || !programDataRaw || !sourceRaw) throw new Error("A required Keeper account is absent.");
+  if (!programRaw || !programDataRaw || !sourceRaw) throw new Error("A required onchain account is absent.");
 
   const program = decodeAccount(programRaw);
   const programData = decodeAccount(programDataRaw);
@@ -51,18 +51,18 @@ export async function fetchRouteProof(rpc, web3, route, minContextSlot) {
 
   if (program.data.length !== 36 || u32(program.data) !== 2 ||
       new web3.PublicKey(program.data.slice(4)).toString() !== KEEPER_PROGRAM_DATA_ADDRESS) {
-    throw new Error("Keeper ProgramData linkage changed.");
+    throw new Error("The onchain withdrawal setup has changed.");
   }
   if (programData.data.length !== PROGRAM_DATA_METADATA_BYTES + KEEPER_ELF_BYTES || u32(programData.data) !== 3) {
-    throw new Error("Keeper ProgramData layout changed.");
+    throw new Error("The onchain withdrawal setup has changed.");
   }
   if (await sha256(programData.data.slice(PROGRAM_DATA_METADATA_BYTES)) !== KEEPER_ELF_SHA256) {
-    throw new Error("Keeper ELF differs from the reviewed release.");
+    throw new Error("The onchain withdrawal code has changed.");
   }
-  if (source.data.length !== 0) throw new Error("Royalty PDA is not zero-data.");
+  if (source.data.length !== 0) throw new Error("This collection's royalty account has an unexpected format.");
   const rentLamports = checkedLamports(rentResult);
   const sourceLamports = checkedLamports(source.lamports);
-  if (sourceLamports < rentLamports) throw new Error("Royalty PDA is below its rent reserve.");
+  if (sourceLamports < rentLamports) throw new Error("This collection's royalty account is below its rent reserve.");
   return {
     slot: accountsResult.context.slot,
     sourceLamports,
@@ -89,10 +89,7 @@ export function unsignedTransactionBytes(transaction) {
   return transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
 }
 
-export function verifyWalletTransaction(reviewed, signed, payer) {
-  if (!equalBytes(reviewed.serializeMessage(), signed.serializeMessage())) {
-    throw new Error("Wallet changed the reviewed transaction. Nothing was sent.");
-  }
+export function serializeSignedTransaction(signed, payer) {
   const payerSignature = signed.signatures.find(({ publicKey }) => publicKey.equals(payer));
   if (!payerSignature?.signature || !signed.verifySignatures()) {
     throw new Error("Wallet did not return a valid fee-payer signature.");
@@ -119,8 +116,9 @@ export async function broadcastAndFinalize(rpc, bytes, signature, blockhashConte
   const deadline = Date.now() + FINALIZATION_TIMEOUT_MS;
   let nextBroadcast = 0;
   let lastBroadcastError = null;
+  let blockhashExpired = false;
   while (Date.now() < deadline) {
-    if (Date.now() >= nextBroadcast) {
+    if (!blockhashExpired && Date.now() >= nextBroadcast) {
       try {
         const returned = await rpc.sendTransaction(bytes);
         if (returned !== signature) throw new Error("RPC returned a different transaction signature.");
@@ -137,20 +135,23 @@ export async function broadcastAndFinalize(rpc, bytes, signature, blockhashConte
       const status = statuses?.value?.[0];
       if (status?.err) throw new Error(`Transaction failed: ${JSON.stringify(status.err)}.`);
       if (status?.confirmationStatus === "finalized") return signature;
-      const height = await rpc.getBlockHeight();
+      const height = blockhashContext ? await rpc.getBlockHeight() : null;
       if (Number.isSafeInteger(height) && height > blockhashContext.lastValidBlockHeight) {
-        const finalStatus = (await rpc.getSignatureStatus(signature))?.value?.[0];
-        if (finalStatus?.confirmationStatus === "finalized") return signature;
-        throw new Error("Transaction expired before finalization. Its signature was not found onchain.");
+        blockhashExpired = true;
       }
     } catch (error) {
-      if (/^Transaction failed:|^Transaction expired/iu.test(error.message)) throw error;
+      if (/^Transaction failed:/iu.test(error.message)) throw error;
       observationError = error;
     }
-    progress(lastBroadcastError || observationError
+    progress(blockhashExpired
+      ? "The blockhash window closed. Checking transaction history for the final result…"
+      : lastBroadcastError || observationError
       ? "RPC is retrying and reconciling the same signed transaction…"
       : "Waiting for finalization…");
     await new Promise((resolve) => setTimeout(resolve, 1_200));
+  }
+  if (blockhashExpired) {
+    throw new Error("Transaction expired and was not found onchain after final reconciliation.");
   }
   throw lastBroadcastError ?? new Error("Timed out waiting for transaction finalization.");
 }

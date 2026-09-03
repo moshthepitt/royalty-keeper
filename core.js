@@ -1,10 +1,6 @@
 const LAMPORTS_PER_SOL = 1_000_000_000n;
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
-export function equalBytes(left, right) {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
-}
-
 export function base58Encode(bytes) {
   let value = 0n;
   for (const byte of bytes) value = value * 256n + BigInt(byte);

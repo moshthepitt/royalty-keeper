@@ -14,6 +14,8 @@ import {
   validateRpcUrl,
 } from "../core.js";
 import {
+  DEFAULT_RPC_URL,
+  FALLBACK_RPC_URL,
   KEEPER_ELF_BYTES,
   KEEPER_ELF_SHA256,
   KEEPER_PROGRAM_DATA_ADDRESS,
@@ -96,6 +98,11 @@ test("RPC URLs require HTTPS except on loopback and labels omit paths and keys",
   assert.equal(validateRpcUrl("http://localhost:8899"), "http://localhost:8899/");
   assert.throws(() => validateRpcUrl("http://rpc.example"), /HTTPS/u);
   assert.throws(() => validateRpcUrl("file:///tmp/rpc"), /HTTPS/u);
+});
+
+test("the official mainnet RPC is the default and the browser fallback is explicit", () => {
+  assert.equal(DEFAULT_RPC_URL, "https://api.mainnet.solana.com/");
+  assert.equal(FALLBACK_RPC_URL, "https://solana-rpc.publicnode.com/");
 });
 
 test("vendored browser library is the reviewed artifact", async () => {
