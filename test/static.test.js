@@ -22,4 +22,5 @@ test("withdrawal UI has no migration, loader, authority-key, or storage machiner
   assert.doesNotMatch(joined, /Keypair|secretKey/iu);
   assert.doesNotMatch(joined, /BPFLoaderUpgradeab1e.*(?:upgrade|close)/iu);
   assert.doesNotMatch(joined, /assign|handoff/iu);
+  assert.match(joined, /window\.top !== window\.self/u);
 });

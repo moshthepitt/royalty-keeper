@@ -23,6 +23,14 @@ import { KEEPER_PROGRAM_ADDRESS, ROUTES } from "./routes.js";
 import { findWallet, onWalletRegistration } from "./wallets.js";
 
 
+if (window.top !== window.self) {
+  const warning = document.createElement("main");
+  warning.className = "frame-warning";
+  warning.textContent = "Royalty Keeper withdrawals cannot run inside another page. Open this site directly.";
+  document.body.replaceChildren(warning);
+  throw new Error("Refusing to run inside a frame.");
+}
+
 const web3 = window.solanaWeb3;
 if (!web3) throw new Error("The pinned Solana browser library did not load.");
 validateRoutes(ROUTES);

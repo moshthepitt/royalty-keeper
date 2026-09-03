@@ -144,6 +144,7 @@ td strong { display: block; }
 .spinning::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
 
 footer { padding: 28px 0 40px; color: var(--muted); text-align: center; font-size: 13px; }
+.frame-warning { max-width: 680px; margin: 20vh auto; padding: 28px; border: 1px solid var(--red); border-radius: var(--radius); color: var(--red); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 @keyframes spin { to { transform: rotate(360deg); } }

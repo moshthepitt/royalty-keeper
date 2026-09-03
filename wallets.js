@@ -12,7 +12,9 @@ const registry = Object.freeze({
 });
 
 if (typeof window !== "undefined") {
-  window.addEventListener("wallet-standard:register-wallet", ({ detail }) => detail(registry));
+  window.addEventListener("wallet-standard:register-wallet", ({ detail }) => {
+    if (typeof detail === "function") detail(registry);
+  });
   window.dispatchEvent(new CustomEvent("wallet-standard:app-ready", { detail: registry }));
 }
 

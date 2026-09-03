@@ -36,8 +36,6 @@ test("injected Phantom connects, signs, and disconnects without secret-key acces
 test("Wallet Standard registration and signTransaction payload follow the standard shape", async () => {
   delete window.phantom;
   let appRegistry;
-  events.get("wallet-standard:app-ready")?.({ detail: null });
-  window.dispatchEvent = () => {};
   const registerListener = events.get("wallet-standard:register-wallet");
   const account = { publicKey: Uint8Array.of(1, 2, 3), chains: ["solana:mainnet"] };
   const standardWallet = {
