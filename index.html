@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src https: http://localhost:* http://127.0.0.1:*; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <title>Royalty Keeper</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header>
+    <div class="brand"><span aria-hidden="true"></span>Royalty Keeper</div>
+    <div class="network">SOLANA · MAINNET</div>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="title">
+      <div>
+        <p class="eyebrow">PERMISSIONLESS NATIVE-SOL ROYALTIES</p>
+        <h1 id="title">Withdraw royalties.</h1>
+        <p>Choose a collection and approve one transaction. Recipient addresses and splits are fixed by the reviewed Keeper release, not entered here.</p>
+      </div>
+      <div class="keeper-note">
+        <span>KEEPER</span>
+        <code>KeEPA4…MAMRvS</code>
+        <small>Exact program code checked before every withdrawal</small>
+      </div>
+    </section>
+
+    <section class="controls" aria-label="Connection settings">
+      <div class="wallet-control">
+        <div class="control-heading">
+          <span>WALLET</span>
+          <p id="wallet-status">Connect a wallet to pay the network fee. No recipient signature is required.</p>
+        </div>
+        <div class="buttons">
+          <button id="phantom" type="button">Phantom</button>
+          <button id="backpack" type="button">Backpack</button>
+          <button id="disconnect" class="quiet" type="button" hidden>Disconnect</button>
+        </div>
+      </div>
+
+      <details class="rpc-control">
+        <summary><span>RPC</span><strong id="rpc-label">api.mainnet-beta.solana.com</strong><small id="rpc-status">Public mainnet RPC</small></summary>
+        <form id="rpc-form">
+          <label for="rpc-url">Mainnet RPC URL</label>
+          <div class="rpc-input">
+            <input id="rpc-url" type="password" inputmode="url" autocomplete="off" spellcheck="false">
+            <button id="rpc-toggle" class="quiet" type="button">Show</button>
+          </div>
+          <div class="buttons">
+            <button type="submit">Use endpoint</button>
+            <button id="rpc-reset" class="quiet" type="button">Reset default</button>
+          </div>
+          <p>Your URL stays in this tab and is sent only to that RPC endpoint.</p>
+        </form>
+      </details>
+    </section>
+
+    <p id="page-status" class="page-status" role="status" aria-live="polite">Collections are ready. Balances are loading independently.</p>
+
+    <section class="collections" aria-labelledby="collections-title">
+      <div class="table-heading">
+        <div>
+          <p class="eyebrow">33 FROZEN ROUTES</p>
+          <h2 id="collections-title">Collections</h2>
+        </div>
+        <div class="table-tools">
+          <label><span class="sr-only">Search collections</span><input id="search" type="search" placeholder="Search collection…"></label>
+          <button id="refresh" class="quiet" type="button">Refresh balances</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Collection</th><th>Royalty balance</th><th>Action</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>Static files · No analytics · No backend · No secret-key access</footer>
+  <script src="./vendor/solana-web3-1.98.4.min.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

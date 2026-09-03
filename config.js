@@ -1,0 +1,10 @@
+export const DEFAULT_RPC_URL = "https://api.mainnet-beta.solana.com/";
+export const CHAIN = "solana:mainnet";
+export const KEEPER_PROGRAM_DATA_ADDRESS = "BH7uPpKQBLArB59EJ9tZC8bm6sWzNXVroCz2XmRDwnnA";
+export const KEEPER_ELF_BYTES = 22_608;
+export const KEEPER_ELF_SHA256 = "9cf01c79d55d031db9449155ed67e4ce30089c474226c8423fb8fc38871876c1";
+export const UPGRADEABLE_LOADER_ADDRESS = "BPFLoaderUpgradeab1e11111111111111111111111";
+export const PROGRAM_DATA_METADATA_BYTES = 45;
+export const RPC_TIMEOUT_MS = 20_000;
+export const FINALIZATION_TIMEOUT_MS = 180_000;
+export const REBROADCAST_INTERVAL_MS = 5_000;
