@@ -45,6 +45,7 @@ const state = {
   rpc: new RpcClient(DEFAULT_RPC_URL),
   balanceGeneration: 0,
   balances: new Map(),
+  balanceLoading: false,
   rows: new Map(),
   wallet: null,
   payer: null,
@@ -157,7 +158,7 @@ function updateControls() {
   elements.backpack.disabled = state.busyRoute !== null || state.wallet?.name === "Backpack";
   elements.disconnect.hidden = !state.wallet;
   elements.disconnect.disabled = state.busyRoute !== null;
-  elements.refresh.disabled = state.busyRoute !== null;
+  elements.refresh.disabled = state.busyRoute !== null || state.balanceLoading;
   [...elements.rpcForm.elements].forEach((control) => { control.disabled = state.busyRoute !== null; });
   if (state.wallet) {
     elements.walletStatus.textContent = `${state.wallet.name} · ${shortAddress(state.payer.toString())}`;
@@ -169,6 +170,8 @@ function updateControls() {
 async function refreshBalances({ showLoading = true } = {}) {
   const generation = ++state.balanceGeneration;
   const rpc = state.rpc;
+  state.balanceLoading = true;
+  updateControls();
   if (showLoading) {
     ROUTES.forEach((route) => {
       state.balances.set(route.id, { status: "loading" });
@@ -209,7 +212,10 @@ async function refreshBalances({ showLoading = true } = {}) {
     });
     setPageStatus("Balance lookup failed. The table and wallet remain usable; retry or choose another RPC.", "warn");
   } finally {
-    if (generation === state.balanceGeneration) elements.refresh.classList.remove("spinning");
+    if (generation === state.balanceGeneration) {
+      state.balanceLoading = false;
+      elements.refresh.classList.remove("spinning");
+    }
     updateControls();
   }
 }
@@ -283,7 +289,7 @@ async function withdraw(route) {
     setOperation(row, "Broadcasting and waiting for finalization…");
     broadcastAttempted = true;
     await broadcastAndFinalize(rpc, wire, attemptedSignature, blockhashContext, (message) => setOperation(row, message));
-    setOperation(row, "Withdrawal finalized. Frozen recipients were paid by the Keeper.", "good", attemptedSignature);
+    setOperation(row, "Keeper sweep finalized. Refreshing this route's balance…", "good", attemptedSignature);
     void refreshBalances({ showLoading: false });
   } catch (error) {
     setOperation(row, errorMessage(error), "bad", broadcastAttempted ? attemptedSignature : null);
