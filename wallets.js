@@ -61,6 +61,10 @@ function standardAdapter(wallet, web3) {
     },
     async sign(transaction) {
       if (!account) throw new Error(`Reconnect ${wallet.name}.`);
+      if (Array.isArray(signFeature.supportedTransactionVersions) &&
+          !signFeature.supportedTransactionVersions.includes("legacy")) {
+        throw new Error(`${wallet.name} does not support legacy Solana transactions.`);
+      }
       const bytes = transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
       const [result] = await signFeature.signTransaction({ account, chain: CHAIN, transaction: bytes });
       if (!result?.signedTransaction) throw new Error(`${wallet.name} returned no signed transaction.`);

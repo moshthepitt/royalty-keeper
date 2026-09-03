@@ -42,7 +42,6 @@ const elements = Object.fromEntries([
 ].map((id) => [id.replace(/-([a-z])/gu, (_, letter) => letter.toUpperCase()), document.getElementById(id)]));
 
 const state = {
-  rpcUrl: DEFAULT_RPC_URL,
   rpc: new RpcClient(DEFAULT_RPC_URL),
   balanceGeneration: 0,
   balances: new Map(),
@@ -298,7 +297,6 @@ function applyRpc(event) {
   event.preventDefault();
   try {
     const url = validateRpcUrl(elements.rpcUrl.value, location.protocol);
-    state.rpcUrl = url;
     state.rpc = new RpcClient(url);
     elements.rpcLabel.textContent = publicRpcLabel(url);
     elements.rpcStatus.textContent = url === DEFAULT_RPC_URL ? "Public mainnet RPC" : "Custom mainnet RPC · kept in this tab only";
@@ -310,7 +308,6 @@ function applyRpc(event) {
 
 function resetRpc() {
   elements.rpcUrl.value = DEFAULT_RPC_URL;
-  state.rpcUrl = DEFAULT_RPC_URL;
   state.rpc = new RpcClient(DEFAULT_RPC_URL);
   elements.rpcLabel.textContent = publicRpcLabel(DEFAULT_RPC_URL);
   elements.rpcStatus.textContent = "Public mainnet RPC";
