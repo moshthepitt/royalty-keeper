@@ -5,6 +5,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 import {
+  broadcastAndFinalize,
   buildSweepTransaction,
   transactionSignature,
   unsignedTransactionBytes,
@@ -83,4 +84,31 @@ test("an exact wallet signature is accepted and any message change is rejected",
   changed.recentBlockhash = web3.Keypair.fromSeed(new Uint8Array(32).fill(9)).publicKey.toString();
   changed.partialSign(payer);
   assert.throws(() => verifyWalletTransaction(reviewed, changed, payer.publicKey), /Wallet changed/u);
+});
+
+test("broadcast reconciliation accepts only finalized success and surfaces onchain failure", async () => {
+  const bytes = Uint8Array.of(1, 2, 3);
+  const signature = "signature";
+  const context = { lastValidBlockHeight: 100 };
+  let sends = 0;
+  const successfulRpc = {
+    async sendTransaction(value) { assert.equal(value, bytes); sends += 1; return signature; },
+    async getSignatureStatus(value) {
+      assert.equal(value, signature);
+      return { value: [{ err: null, confirmationStatus: "finalized" }] };
+    },
+  };
+  assert.equal(await broadcastAndFinalize(successfulRpc, bytes, signature, context), signature);
+  assert.equal(sends, 1);
+
+  const failedRpc = {
+    async sendTransaction() { return signature; },
+    async getSignatureStatus() {
+      return { value: [{ err: { InstructionError: [0, "InvalidArgument"] }, confirmationStatus: "confirmed" }] };
+    },
+  };
+  await assert.rejects(
+    broadcastAndFinalize(failedRpc, bytes, signature, context),
+    /Transaction failed.*InvalidArgument/u,
+  );
 });
