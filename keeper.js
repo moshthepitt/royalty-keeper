@@ -1,7 +1,6 @@
 import {
   FINALIZATION_TIMEOUT_MS,
-  KEEPER_ELF_BYTES,
-  KEEPER_ELF_SHA256,
+  KEEPER_RELEASES,
   KEEPER_PROGRAM_DATA_ADDRESS,
   PROGRAM_DATA_METADATA_BYTES,
   REBROADCAST_INTERVAL_MS,
@@ -22,6 +21,14 @@ function hex(bytes) {
 
 async function sha256(bytes) {
   return hex(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)));
+}
+
+export async function identifyKeeperRelease(elf, releases = KEEPER_RELEASES) {
+  for (const release of releases) {
+    if (elf.length >= release.bytes && !elf.subarray(release.bytes).some((byte) => byte !== 0)
+        && await sha256(elf.subarray(0, release.bytes)) === release.sha256) return release;
+  }
+  throw new Error("The onchain withdrawal code has changed.");
 }
 
 function assertCanonicalAccount(account, owner, executable) {
@@ -53,14 +60,15 @@ export async function fetchRouteProof(rpc, web3, route, minContextSlot) {
       new web3.PublicKey(program.data.slice(4)).toString() !== KEEPER_PROGRAM_DATA_ADDRESS) {
     throw new Error("The onchain withdrawal setup has changed.");
   }
-  if (programData.data.length !== PROGRAM_DATA_METADATA_BYTES + KEEPER_ELF_BYTES || u32(programData.data) !== 3) {
+  if (programData.data.length < PROGRAM_DATA_METADATA_BYTES || u32(programData.data) !== 3) {
     throw new Error("The onchain withdrawal setup has changed.");
   }
-  if (await sha256(programData.data.slice(PROGRAM_DATA_METADATA_BYTES)) !== KEEPER_ELF_SHA256) {
-    throw new Error("The onchain withdrawal code has changed.");
-  }
+  const release = await identifyKeeperRelease(programData.data.subarray(PROGRAM_DATA_METADATA_BYTES));
+  if (route.id > release.lastRoute) throw new Error("This collection is not available for withdrawal yet.");
   if (source.data.length !== 0) throw new Error("This collection's royalty account has an unexpected format.");
-  const rentLamports = checkedLamports(rentResult);
+  const liveRent = checkedLamports(rentResult);
+  const floor = BigInt(route.reserveFloorLamports ?? 0);
+  const rentLamports = liveRent > floor ? liveRent : floor;
   const sourceLamports = checkedLamports(source.lamports);
   if (sourceLamports < rentLamports) throw new Error("This collection's royalty account is below its rent reserve.");
   return {

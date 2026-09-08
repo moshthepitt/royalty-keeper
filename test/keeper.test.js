@@ -54,10 +54,10 @@ test("transaction construction exactly matches the Keeper sweep ABI", async () =
   assert.equal(transaction.recentBlockhash, blockhash);
 });
 
-test("all frozen source addresses are the recorded origin program's NFTSale PDA", async () => {
+test("all source addresses match their recorded origin, seed and bump", async () => {
   const web3 = await loadVendoredWeb3();
-  const seed = new TextEncoder().encode("NFTSale");
   for (const route of ROUTES) {
+    const seed = new TextEncoder().encode(route.seed ?? "NFTSale");
     const derived = web3.PublicKey.createProgramAddressSync(
       [seed, Uint8Array.of(route.bump)],
       new web3.PublicKey(route.originProgramAddress),

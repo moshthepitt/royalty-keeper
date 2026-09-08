@@ -24,7 +24,8 @@ export function checkedLamports(value) {
 
 export function expectedPayouts(route, sourceLamports, rentLamports) {
   const source = BigInt(sourceLamports);
-  const rent = BigInt(rentLamports);
+  const floor = BigInt(route.reserveFloorLamports ?? 0);
+  const rent = BigInt(rentLamports) > floor ? BigInt(rentLamports) : floor;
   const surplus = source > rent ? source - rent : 0n;
   const payouts = route.recipients.map(({ basisPoints }) =>
     surplus * BigInt(basisPoints) / 10_000n);
@@ -94,7 +95,7 @@ export function publicRpcLabel(raw) {
 }
 
 export function validateRoutes(routes) {
-  if (!Array.isArray(routes) || routes.length !== 33) throw new Error("Expected 33 frozen routes.");
+  if (!Array.isArray(routes) || routes.length !== 34) throw new Error("Expected 34 reviewed routes.");
   const sources = new Set();
   routes.forEach((route, index) => {
     if (route.id !== index || !route.name || !route.sourceAddress || !route.originProgramAddress ||
@@ -103,6 +104,10 @@ export function validateRoutes(routes) {
     }
     if (sources.has(route.sourceAddress)) throw new Error(`Route ${index} repeats a source PDA.`);
     sources.add(route.sourceAddress);
+    if (route.reserveFloorLamports !== undefined &&
+        (!Number.isSafeInteger(route.reserveFloorLamports) || route.reserveFloorLamports < 0)) {
+      throw new Error(`Route ${index} has an invalid reserve floor.`);
+    }
     if (!Array.isArray(route.recipients) || route.recipients.length < 1 || route.recipients.length > 5) {
       throw new Error(`Route ${index} has an invalid recipient count.`);
     }

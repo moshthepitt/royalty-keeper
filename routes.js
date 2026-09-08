@@ -35,6 +35,7 @@ const COLLECTION_NAMES = Object.freeze([
   "Sanctuary",
   "Nobu Ninjas",
   "Cvivors",
+  "Moran Masks",
 ]);
 const ROUTE_DATA = [
   {
@@ -595,6 +596,20 @@ const ROUTE_DATA = [
     "remainderIndex": 0
   }
 ];
+
+ROUTE_DATA.push({
+  id: 33,
+  originProgramAddress: "97sYKoLaahSkfpSBr3wiHxo36BoWu61ubuHM7Zrmpdv7",
+  sourceAddress: "DXARXjMZs6K6sHG2UT1jU9n4fjfZQxWLPHuSAyX7QE83",
+  seed: "masks",
+  bump: 255,
+  reserveFloorLamports: 890880,
+  recipients: [
+    { address: "maraPEovwCfui73HxMsWVbgNNhUAtodx3XPkCvanKgL", basisPoints: 9000 },
+    { address: "jaya4gY5gWCvwBvxpKTYoQtFzw2ZY4rTrTsTUfmMzg1", basisPoints: 1000 },
+  ],
+  remainderIndex: 0,
+});
 
 export const ROUTES = Object.freeze(ROUTE_DATA.map((route) => Object.freeze({
   ...route,

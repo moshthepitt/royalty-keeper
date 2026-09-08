@@ -1,6 +1,6 @@
 # NFT royalty withdrawals
 
-A static interface for withdrawing native-SOL royalties from 33 configured NFT collections.
+A static interface for withdrawing native-SOL royalties from 34 configured NFT collections.
 
 There is no build step, application server, database, analytics, or secret-key input. GitHub Pages can serve the repository root as-is. The browser connects directly to a Solana mainnet RPC and to Phantom or Backpack.
 
@@ -25,7 +25,7 @@ The connected wallet pays the network fee and approves the transaction.
 For the chosen collection, the page:
 
 1. downloads the withdrawal program, its ProgramData, and the royalty account in one RPC snapshot;
-2. checks the ProgramData link, exact 22,608-byte ELF SHA-256, account owner, zero data length, and rent reserve;
+2. checks the ProgramData link, a reviewed ELF SHA-256 with zero-only loader padding, account owner, zero data length, and rent reserve;
 3. constructs one withdrawal instruction containing the configured royalty account and recipients;
 4. simulates the exact unsigned transaction;
 5. asks the wallet to review and sign the transaction;
@@ -33,7 +33,7 @@ For the chosen collection, the page:
 
 The wallet may add compute-budget settings. The site accepts those edits and simulates the returned signed transaction.
 
-Every successful withdrawal leaves the current zero-data rent reserve in the royalty account. Collections with historical floor rounding may also retain a few lamports.
+Every successful withdrawal leaves the current zero-data rent reserve in the royalty account. Moran Masks also retains its legacy 890,880-lamport minimum when that is higher. Collections with historical floor rounding may retain a few lamports.
 
 The onchain program currently retains an upgrade authority. This site pins the reviewed ELF and refuses to withdraw if that code changes. Updating the program requires a reviewed site release.
 
@@ -47,11 +47,17 @@ The page tries [Solana's public mainnet RPC](https://solana.com/docs/references/
 
 - Withdrawal program: `KeEPA4MrRF45wBAwsJRGHwumd3LiRubpcvyZjMAMRvS`
 - ProgramData: `BH7uPpKQBLArB59EJ9tZC8bm6sWzNXVroCz2XmRDwnnA`
-- ELF SHA-256: `9cf01c79d55d031db9449155ed67e4ce30089c474226c8423fb8fc38871876c1`
+- Original 22,608-byte ELF SHA-256: `9cf01c79d55d031db9449155ed67e4ce30089c474226c8423fb8fc38871876c1`
+- Moran-capable 22,936-byte ELF SHA-256: `37a6abaee8fbebfb2c3af33c25265a26ebdce0eaa11720f96f7d4064b0b0bf73`
 - Vendored Solana Web3.js: `1.98.4`
 - Vendored minified file SHA-256: `09cdbea951b2ed0e11bcbe3aeb1ee9f035f9fb51ed212aca645475ae82688cc3`
 
 The royalty account, recipient order, basis points, and legacy remainder behavior live in `routes.js`. Change them only from the audited manifest. The vendored library license is in `vendor/solana-web3-LICENSE`.
+
+During Moran rollout, both reviewed program releases are accepted. The original
+release supports routes 0–32; Moran route 33 requires the new release and its
+royalty account must already be migrated. Publish this site update before
+upgrading the onchain program so existing withdrawals continue to work.
 
 ## Maintenance rule
 

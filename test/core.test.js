@@ -22,18 +22,18 @@ import {
 } from "../config.js";
 import { KEEPER_PROGRAM_ADDRESS, ROUTES } from "../routes.js";
 
-test("frozen Keeper release and all 33 routes validate", () => {
+test("frozen Keeper baseline and 34 reviewed routes validate", () => {
   assert.doesNotThrow(() => validateRoutes(ROUTES));
-  assert.equal(ROUTES.length, 33);
+  assert.equal(ROUTES.length, 34);
   assert.equal(KEEPER_PROGRAM_ADDRESS, "KeEPA4MrRF45wBAwsJRGHwumd3LiRubpcvyZjMAMRvS");
   assert.equal(KEEPER_PROGRAM_DATA_ADDRESS, "BH7uPpKQBLArB59EJ9tZC8bm6sWzNXVroCz2XmRDwnnA");
   assert.equal(KEEPER_ELF_BYTES, 22_608);
   assert.equal(KEEPER_ELF_SHA256, "9cf01c79d55d031db9449155ed67e4ce30089c474226c8423fb8fc38871876c1");
 });
 
-test("the complete named route manifest matches its reviewed snapshot", () => {
+test("the original 33 routes remain byte-identical to their reviewed snapshot", () => {
   assert.equal(
-    createHash("sha256").update(JSON.stringify(ROUTES)).digest("hex"),
+    createHash("sha256").update(JSON.stringify(ROUTES.slice(0, 33))).digest("hex"),
     "991d65b9d32a60b32700def9bd64f723d1da2004fd5d3dc8183108247b047041",
   );
 });
