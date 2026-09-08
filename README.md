@@ -56,8 +56,10 @@ The royalty account, recipient order, basis points, and legacy remainder behavio
 
 During Moran rollout, both reviewed program releases are accepted. The original
 release supports routes 0–32; Moran route 33 requires the new release and its
-royalty account must already be migrated. Publish this site update before
-upgrading the onchain program so existing withdrawals continue to work.
+royalty account must already be migrated. Publish this site update last, after
+both Moran and Souls migrations are complete and verified. Until publication,
+the old site's code-hash check will refuse withdrawals once Keeper is upgraded,
+including for existing collections. The updated local page remains usable.
 The candidate also supports Souls route 34. Its public row is deferred until
 the separate Souls migration; this update does not change the Souls program.
 
