@@ -48,7 +48,7 @@ The page tries [Solana's public mainnet RPC](https://solana.com/docs/references/
 - Withdrawal program: `KeEPA4MrRF45wBAwsJRGHwumd3LiRubpcvyZjMAMRvS`
 - ProgramData: `BH7uPpKQBLArB59EJ9tZC8bm6sWzNXVroCz2XmRDwnnA`
 - Original 22,608-byte ELF SHA-256: `9cf01c79d55d031db9449155ed67e4ce30089c474226c8423fb8fc38871876c1`
-- Moran-capable 22,936-byte ELF SHA-256: `37a6abaee8fbebfb2c3af33c25265a26ebdce0eaa11720f96f7d4064b0b0bf73`
+- Moran/Souls-capable 23,208-byte ELF SHA-256: `eeac65ff218403ee8b13f8a34941ecba3e6214bf26bc8a9442e9c317358825eb`
 - Vendored Solana Web3.js: `1.98.4`
 - Vendored minified file SHA-256: `09cdbea951b2ed0e11bcbe3aeb1ee9f035f9fb51ed212aca645475ae82688cc3`
 
@@ -58,6 +58,8 @@ During Moran rollout, both reviewed program releases are accepted. The original
 release supports routes 0–32; Moran route 33 requires the new release and its
 royalty account must already be migrated. Publish this site update before
 upgrading the onchain program so existing withdrawals continue to work.
+The candidate also supports Souls route 34. Its public row is deferred until
+the separate Souls migration; this update does not change the Souls program.
 
 ## Maintenance rule
 
