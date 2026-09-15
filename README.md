@@ -4,7 +4,7 @@ A static interface for withdrawing native-SOL royalties from 34 configured NFT c
 
 There is no build step, application server, database, analytics, or secret-key input. GitHub Pages can serve the repository root as-is. The browser connects directly to a Solana mainnet RPC and to Phantom or Backpack.
 
-For the deferred Moran and Souls site release, read [TODO.md](TODO.md) before changing routes or publishing.
+For the deferred Moran, Souls and Nova5 site release, read [TODO.md](TODO.md) before changing routes or publishing. The deployed Keeper now has 66 routes; this local site's rows and accepted code hashes have not yet been updated for that release.
 
 ## Run locally
 
