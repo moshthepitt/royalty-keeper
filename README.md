@@ -2,6 +2,8 @@
 
 Withdraw SOL royalties for supported NFT collections on Solana mainnet. Works with Phantom and Backpack.
 
+[Open the withdrawal site](https://moshthepitt.github.io/royalty-keeper/).
+
 ## Withdraw royalties
 
 1. Connect your wallet using the buttons in the header.

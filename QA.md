@@ -1,6 +1,6 @@
 # Withdrawal site checks
 
-Checked locally on 2026-09-28. No transactions were signed or sent, and this release has not been published.
+Checked locally and after publication on 2026-09-28. No transactions were signed or sent.
 
 ## Automated checks
 
@@ -29,4 +29,10 @@ Of 66 unsigned withdrawal simulations, 57 passed. Nine failed Solana's `Insuffic
 
 A clean browser loaded all 66 live balances through the public fallback and prepared Moran's unsigned withdrawal. A public-key-only wallet mock was used; its signing method was never called.
 
-These checks do not replace an end-to-end test with a real wallet extension. The wallet adapters and recovery paths were tested with mocks. Mainnet balances and account rent requirements can change after this snapshot.
+The user separately reported a successful withdrawal test. The automated wallet-adapter and recovery tests used mocks; this QA run did not sign or send transactions. Mainnet balances and account rent requirements can change after this snapshot.
+
+## Published site
+
+Application release `22c4498` passed [CI](https://github.com/moshthepitt/royalty-keeper/actions/runs/36394530526) and [Pages deployment](https://github.com/moshthepitt/royalty-keeper/actions/runs/36394527343).
+
+At 07:58 UTC, a clean Chromium session checked [the hosted site](https://moshthepitt.github.io/royalty-keeper/). All five public assets matched the local release byte for byte. Startup made five requests and no RPC calls. The page showed 66 rows, fit desktop and mobile widths, loaded all 66 live balances through PublicNode when the default RPC was unavailable, and prepared Moran's unsigned withdrawal. There were no JavaScript exceptions or signing calls.
