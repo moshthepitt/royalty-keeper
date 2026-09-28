@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src https: http://localhost:* http://127.0.0.1:*; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <title>NFT royalty withdrawals</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand"><span aria-hidden="true"></span><strong>NFT royalties</strong><small>Mainnet</small></div>
+    <div class="header-controls" aria-label="Wallet and RPC">
+      <span id="wallet-status" class="wallet-status">Wallet not connected</span>
+      <div class="wallet-buttons">
+        <button id="phantom" type="button">Phantom</button>
+        <button id="backpack" type="button">Backpack</button>
+        <button id="disconnect" class="quiet" type="button" hidden>Disconnect</button>
+      </div>
+
+      <details class="rpc-control">
+        <summary><span>RPC</span><strong id="rpc-label">api.mainnet.solana.com</strong></summary>
+        <form id="rpc-form">
+          <label for="rpc-url">Mainnet RPC URL</label>
+          <div class="rpc-input">
+            <input id="rpc-url" type="password" inputmode="url" autocomplete="off" spellcheck="false">
+            <button id="rpc-toggle" class="quiet" type="button">Show</button>
+          </div>
+          <div class="buttons">
+            <button type="submit">Use endpoint</button>
+            <button id="rpc-reset" class="quiet" type="button">Use default</button>
+          </div>
+          <p id="rpc-status">Default public RPC. Custom URLs stay in this tab.</p>
+        </form>
+      </details>
+    </div>
+  </header>
+
+  <main>
+    <section class="collections" aria-labelledby="collections-title">
+      <div class="table-heading">
+        <div>
+          <h1 id="collections-title">Collections</h1>
+          <p id="page-status" class="page-status" role="status" aria-live="polite">Loading balances…</p>
+        </div>
+        <div class="table-tools">
+          <label><span class="sr-only">Search collections</span><input id="search" type="search" placeholder="Search collection…"></label>
+          <button id="refresh" class="quiet" type="button">Refresh balances</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Collection</th><th>Royalty balance</th><th>Action</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>Static site. No analytics or backend.</footer>
+  <script src="./vendor/solana-web3-1.98.4.min.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

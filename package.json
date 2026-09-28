@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test tests/static/*.test.mjs",
+    "test:browser": "node tests/static/browser.mjs",
+    "serve": "node scripts/serve.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }
